@@ -44,6 +44,40 @@ def align(donation_df, cluster_df):
 
   return donation_df, cluster_df
 
+def check_matching_cap(col, matching_cap_percent):
+    col = col.copy()
+    while True:
+        # Step 1: Identify the projects that have matching percentages exceeding the cap
+        over_cap = np.maximum(0, col - matching_cap_percent)
+        # Step 2: Set the matching percent to the cap percent for projects exceeding the cap
+        col.loc[col > matching_cap_percent] = matching_cap_percent
+        # Step 3: Calculate the total matching percent for projects not exceeding the cap
+        total_percent_for_not_capped = col[col < matching_cap_percent].sum()
+        # Step 4: If there isa  percentage available for redistribution, redistribute the excess percentage from over-capped projects proportionally
+        if total_percent_for_not_capped > 0:
+            remainder_percent = over_cap.sum() / total_percent_for_not_capped
+            col.loc[col < matching_cap_percent] *= (1 + remainder_percent)
+        else:
+            # If no percentage is available for redistribution, exit the loop
+            break
+        # Step 5: Check if the updates pushed any project over the cap, if not, exit the loop
+        over_cap_after_update = np.maximum(0, col - matching_cap_percent)
+        if not over_cap_after_update.sum() > 0:
+            break
+    # Return the updated project data
+    return col
+
+def scale_matching(funding, matching_cap_percent, matching_amount):
+    projects = list(funding.keys())
+    total_money = sum(funding.values())
+    funding_normalized = {p: funding[p]/total_money for p in projects} 
+    # Create DataFrame with 'project_name' and 'matching_amount' columns
+    result = pd.DataFrame(list(funding_normalized.items()), columns=['project_name', 'matching_amount'])
+    # Apply the cap to the 'matching_amount' column
+    result['matching_amount'] = check_matching_cap(result['matching_amount'], matching_cap_percent)
+    # Scale the 'matching_amount' column by the total matching amount
+    result['matching_amount'] = result['matching_amount'] * matching_amount
+    return result
 
 # now on to the QF variants
 
