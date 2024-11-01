@@ -51,26 +51,9 @@ def simulate_1t1v(donation_df, strategy='shade'):
 	return results
 
 
-def simulate_borda_count(donation_df):
-	projects = donation_df.columns
-	num_proj = len(projects)
-
-	point_tallies = {p: 0 for p in projects}
-
-	for i in donation_df.index:
-		row = donation_df.loc[i].copy()
-		for j in range(num_proj):
-			current_max = row.idxmax()
-			point_tallies[current_max] += num_proj - (j+1)
-			row.drop([current_max])
-
-	total_points = sum(point_tallies[p] for p in projects)
-
-	results = {p : point_tallies[p] / total_points for p in projects}
-
-	return results
 
 def simulate_borda_count(donation_df):
+	#https://en.wikipedia.org/wiki/Borda_count
 	projects = donation_df.columns
 	num_proj = len(projects)
 
